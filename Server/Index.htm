@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font: 13px Helvetica, Arial;
+        }
+
+        form {
+            background: rgb(50, 50, 50);
+            padding: 3px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        form input {
+            border: 0;
+            padding: 10px;
+            width: 90%;
+            margin-right: .5%;
+            margin-bottom: .2%;
+        }
+
+        form button {
+            width: 9%;
+            background: rgb(130, 224, 255);
+            border: none;
+            padding: 10px;
+        }
+
+        section {
+            width: 100%;
+        }
+
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            min-height: 10%;
+            overflow-wrap: break-word;
+            width: 50%;
+            float: left;
+            border-right: black 2px solid;
+        }
+
+        #messages li {
+            padding: 5px 10px;
+        }
+
+        #messages li:nth-child(odd):not(.warningMsg) {
+            background: #eee;
+        }
+
+        #devices {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            min-height: 10%;
+            overflow-y: auto;
+            width: 49%;
+        }
+
+        #devices li {
+            padding: 5px 10px;
+        }
+
+        #devices li:nth-child(odd) {
+            background: #eee;
+        }
+
+        .warningMsg {
+            background-color: red;
+        }
+
+        .jsonStringInput {
+            display: inline-block;
+            margin-right: 0px;
+            margin-bottom: 2px;
+            width: 100px;
+            background: white;
+        }
+    </style>
+    <title>Index</title>
+</head>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+<script>
+    var socket = io();
+    var devices = [];
+
+    $(function () {
+        //On message from either user or from mqtt server
+        socket.on('message', function (msg) {
+            var jsonObj = JSON.parse(msg);
+            if (jsonObj.hasOwnProperty('power') && JSON.parse(msg).power != 0) {
+                $('#messages').prepend($('<li>').text(msg + ", WARNING Power setting!").addClass("warningMsg"));
+            }
+            else {
+                $('#messages').prepend($('<li>').text(msg).addClass("msg"));
+            }
+
+            let found = false;
+            for (let i = 0; i < devices.length; i++) {
+                if (devices[i].aggregatorID == jsonObj.aggregatorID && devices[i].uid == jsonObj.uid) {
+                    $("#devices").children().eq(i + 1).text("Aggregator: " + jsonObj.aggregatorID + ", Device: " + jsonObj.uid + ", Last check-in: " + jsonObj.time);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                devices.push({ aggregatorID: jsonObj.aggregatorID, uid: jsonObj.uid });
+                $('#devices').append($('<li>').text("Aggregator: " + jsonObj.aggregatorID + ", Device: " + jsonObj.uid + ", Last check-in: " + jsonObj.time));
+            }
+
+            $('#messages').animate({ scrollTop: 0 }, 100);
+        });
+    });
+</script>
+
+<body>
+    <section>
+        <ul id="messages">
+        </ul>
+        <ul id="devices">
+            <li>Connected device:</li>
+        </ul>
+    </section>
+</body>
+
+</html>
